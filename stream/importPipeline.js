@@ -21,6 +21,8 @@ streams.popularityMapper = require('./popularity_mapper');
 streams.dbMapper = require('pelias-model').createDocumentMapperStream;
 streams.elasticsearch = require('pelias-dbclient');
 
+console.log(parameters.download[0].sourceURL);
+console.log(got(parameters.download[0].sourceURL).json());
 // default import pipeline
 streams.import = function(){
   got(parameters.download[0].sourceURL).json().elements
