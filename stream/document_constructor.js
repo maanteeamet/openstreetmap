@@ -17,6 +17,9 @@ module.exports = function(){
       if (!item.type || ! item.id) {
         throw new Error('doc without valid id or type');
       }
+      if (!item.tags.name) {
+        throw new Error('venue without a name');
+      }
       var uniqueId = [ item.type, item.id ].join('/');
 
       // we need to assume it will be a venue and later if it turns out to be an address it will get changed

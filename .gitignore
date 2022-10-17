@@ -5,5 +5,7 @@ nohup.out
 test/*.pbf
 coverage
 
+.idea
+
 actual_output.json
 expected_output.json
