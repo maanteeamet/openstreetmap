@@ -23,7 +23,7 @@ streams.dbMapper = require('pelias-model').createDocumentMapperStream;
 streams.elasticsearch = require('pelias-dbclient');
 
 console.log(parameters.download[0].sourceURL);
-console.log(got(parameters.download[0].sourceURL).json());
+
 
 let parser = async () => {
   let url = parameters.download[0].sourceURL;
