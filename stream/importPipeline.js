@@ -24,7 +24,6 @@ streams.elasticsearch = require('pelias-dbclient');
 
 console.log(parameters.download[0].sourceURL);
 
-
 let parser = async () => {
   let url = parameters.download[0].sourceURL;
 
