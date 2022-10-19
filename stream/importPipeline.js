@@ -25,6 +25,14 @@ streams.elasticsearch = require('pelias-dbclient');
 
 console.log(parameters.download[0].sourceURL);
 
+let jsonStream = request({url: parameters.download[0].sourceURL})
+  .pipe(JSONStream.parse('elements.*'));
+
+jsonStream.on('data', function(data) {
+  console.log(data.length);
+  console.log(data.size);
+});
+
 // default import pipeline
 streams.import = function(){
   request({url: parameters.download[0].sourceURL})
