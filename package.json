@@ -37,7 +37,7 @@
     "async": "^3.0.1",
     "combined-stream": "^1.0.5",
     "extend": "^3.0.0",
-    "hyperquest": "^2.1.3",
+    "event-stream": "^4.0.1",
     "is-object": "^1.0.1",
     "iso-639-3": "^1.0.0",
     "joi": "^14.0.0",
@@ -51,6 +51,7 @@
     "pelias-logger": "^1.2.1",
     "pelias-model": "^7.1.0",
     "pelias-wof-admin-lookup": "^7.1.1",
+    "request": "^2.88.2",
     "through2": "^3.0.0",
     "through2-sink": "^1.0.0"
   },

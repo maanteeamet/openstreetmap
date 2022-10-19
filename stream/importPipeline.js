@@ -6,7 +6,8 @@ streams.config = {
   categoryDefaults: categoryDefaults
 };
 
-const hyperquest = require('hyperquest');
+const request = require('request');
+const es = require('event-stream');
 const JSONStream = require('JSONStream');
 const parameters = require('pelias-config').generate().imports['openstreetmap-venues'];
 
@@ -24,14 +25,15 @@ streams.elasticsearch = require('pelias-dbclient');
 
 console.log(parameters.download[0].sourceURL);
 
-let parser = async () => {
-  let url = parameters.download[0].sourceURL;
-
-  await hyperquest(url).pipe(JSONStream.parse('elements.*'));
-};
 // default import pipeline
 streams.import = function(){
-  parser()
+  request({url: parameters.download[0].sourceURL})
+    .pipe(JSONStream.parse('elements.*'))
+    .pipe(es.mapSync(function (data) {
+      console.log(data.length);
+      console.log(data.size);
+      return data;
+    }))
     .pipe( streams.docConstructor() )
     .pipe( streams.tagMapper() )
     //.pipe( streams.addressExtractor() )
