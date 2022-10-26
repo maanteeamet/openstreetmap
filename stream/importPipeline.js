@@ -38,8 +38,7 @@ streams.import = function(){
   request({url: parameters.download[0].sourceURL})
     .pipe(JSONStream.parse('elements.*'))
     .pipe(es.mapSync(function (data) {
-      console.log(data.length);
-      console.log(data.size);
+      console.log(data);
       return data;
     }))
     .pipe( streams.docConstructor() )
