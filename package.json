@@ -52,8 +52,10 @@
     "pelias-model": "^7.1.0",
     "pelias-wof-admin-lookup": "^7.1.1",
     "request": "^2.88.2",
+    "requestretry": "^7.1.0",
     "through2": "^3.0.0",
-    "through2-sink": "^1.0.0"
+    "through2-sink": "^1.0.0",
+    "transform-coordinates": "^1.0.0"
   },
   "devDependencies": {
     "colors": "^1.1.2",

@@ -8,6 +8,8 @@ const through = require('through2');
 const Document = require('pelias-model').Document;
 const peliasLogger = require( 'pelias-logger' ).get( 'openstreetmap' );
 const _ = require('lodash');
+const request = require('requestretry');
+const transformation = require('transform-coordinates');
 
 module.exports = function(){
 
@@ -20,10 +22,35 @@ module.exports = function(){
       if (!item.tags.name) {
         throw new Error('venue without a name');
       }
+
+      const transformForReverseGeocoding = transformation('EPSG:4326', 'EPSG:3301');
+      const reverseCoordinates = transformForReverseGeocoding.forward(
+        {x: parseFloat(item.lat), y: parseFloat(item.lon)}
+      );
+
+      let county, localadmin, locality = '';
+
+      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`)
+        .then((data) => {
+          JSON.parse(data);
+        }).then((data) => {
+          const aadress = data.addresses[0].taisaadress;
+          const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
+          const admin_parts_length = admin_parts.length - 1;
+        if (admin_parts_length >= 3) {
+          county = admin_parts[0];
+          localadmin = admin_parts[1];
+          locality = admin_parts[2];
+        } else {
+          county = admin_parts[0];
+          locality = admin_parts[1];
+        }
+      });
+
       var uniqueId = [ item.type, item.id ].join('/');
 
       // we need to assume it will be a venue and later if it turns out to be an address it will get changed
-      var doc = new Document( 'openstreetmap', 'venue', uniqueId );
+      var doc = new Document( 'openstreetmap/overpass', 'venue', uniqueId );
 
       // Set latitude / longitude
       if( item.hasOwnProperty('lat') && item.hasOwnProperty('lon') ){
@@ -55,6 +82,16 @@ module.exports = function(){
             lon: parseFloat(item.bounds.e)
           }
         });
+      }
+
+      if (county && county.length > 0) {
+        doc.addParent('county', county, 'c:' + item.id);
+      }
+      if (localadmin && localadmin.length > 0) {
+        doc.addParent('localadmin', localadmin, 'la:' + item.id);
+      }
+      if (locality && locality.length > 0) {
+        doc.addParent('locality', locality, 'l:' + item.id);
       }
 
       // Store osm tags as a property inside _meta
