@@ -25,16 +25,14 @@ module.exports = function(){
 
       const transformForReverseGeocoding = transformation('EPSG:4326', 'EPSG:3301');
       const reverseCoordinates = transformForReverseGeocoding.forward(
-        {x: parseFloat(item.lat), y: parseFloat(item.lon)}
+        {x: parseFloat(item.lon), y: parseFloat(item.lat)}
       );
 
       let county, localadmin, locality = '';
 
       request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`)
         .then((data) => {
-          JSON.parse(data);
-        }).then((data) => {
-          const aadress = data.addresses[0].taisaadress;
+          const aadress = JSON.parse(data.body).addresses[0].taisaadress;
           const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
           const admin_parts_length = admin_parts.length - 1;
         if (admin_parts_length >= 3) {
