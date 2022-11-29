@@ -1,22 +1,21 @@
-
 /**
-  The document constructor is responsible for mapping input data from the parser
-  in to model.Document() objects which the rest of the pipeline expect to consume.
-**/
+ The document constructor is responsible for mapping input data from the parser
+ in to model.Document() objects which the rest of the pipeline expect to consume.
+ **/
 
 const through = require('through2');
 const Document = require('pelias-model').Document;
-const peliasLogger = require( 'pelias-logger' ).get( 'openstreetmap' );
+const peliasLogger = require('pelias-logger').get('openstreetmap');
 const _ = require('lodash');
 const request = require('requestretry');
 const transformation = require('transform-coordinates');
 
-module.exports = function(){
+module.exports = function () {
 
-  var stream = through.obj( function( item, enc, next ) {
+  var stream = through.obj(function (item, enc, next) {
 
     try {
-      if (!item.type || ! item.id) {
+      if (!item.type || !item.id) {
         throw new Error('doc without valid id or type');
       }
       if (!item.tags.name) {
@@ -32,28 +31,33 @@ module.exports = function(){
 
       request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`,
         {headers: {'Content-Type': 'application/json'}}
-      )
-        .then((data) => {
-          const aadress = JSON.parse(data.body).addresses[0].taisaadress;
+      ).then(
+        (body) => {
+          console.log(JSON.parse(body.body).addresses[0].taisaadress);
+          const aadress = JSON.parse(body.body).addresses[0].taisaadress;
           const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
           const admin_parts_length = admin_parts.length - 1;
-        if (admin_parts_length >= 3) {
-          county = admin_parts[0];
-          localadmin = admin_parts[1];
-          locality = admin_parts[2];
-        } else {
-          county = admin_parts[0];
-          locality = admin_parts[1];
-        }
-      });
+          if (admin_parts_length >= 3) {
+            county = admin_parts[0].trim();
+            localadmin = admin_parts[1].trim();
+            locality = admin_parts[2].trim();
+          } else {
+            county = admin_parts[0].trim();
+            locality = admin_parts[1].trim();
+          }
+        },
+        (err) => {
+          console.log(err);
+        } // Handle error later
+      );
 
-      var uniqueId = [ item.type, item.id ].join('/');
+      var uniqueId = [item.type, item.id].join('/');
 
       // we need to assume it will be a venue and later if it turns out to be an address it will get changed
-      var doc = new Document( 'openstreetmap/overpass', 'venue', uniqueId );
+      var doc = new Document('openstreetmap/overpass', 'venue', uniqueId);
 
       // Set latitude / longitude
-      if( item.hasOwnProperty('lat') && item.hasOwnProperty('lon') ){
+      if (item.hasOwnProperty('lat') && item.hasOwnProperty('lon')) {
         doc.setCentroid({
           lat: item.lat,
           lon: item.lon
@@ -61,8 +65,8 @@ module.exports = function(){
       }
 
       // Set latitude / longitude (for ways where the centroid has been precomputed)
-      else if( item.hasOwnProperty('centroid') ){
-        if( item.centroid.hasOwnProperty('lat') && item.centroid.hasOwnProperty('lon') ){
+      else if (item.hasOwnProperty('centroid')) {
+        if (item.centroid.hasOwnProperty('lat') && item.centroid.hasOwnProperty('lon')) {
           doc.setCentroid({
             lat: item.centroid.lat,
             lon: item.centroid.lon
@@ -71,7 +75,7 @@ module.exports = function(){
       }
 
       // set bounding box
-      if( _.isPlainObject(item.bounds) ){
+      if (_.isPlainObject(item.bounds)) {
         doc.setBoundingBox({
           upperLeft: {
             lat: parseFloat(item.bounds.n),
@@ -95,14 +99,12 @@ module.exports = function(){
       }
 
       // Store osm tags as a property inside _meta
-      doc.setMeta( 'tags', item.tags || {} );
+      doc.setMeta('tags', item.tags || {});
 
       // Push instance of Document downstream
-      this.push( doc );
-    }
-
-    catch( e ){
-      peliasLogger.error( 'error constructing document model', e.stack );
+      this.push(doc);
+    } catch (e) {
+      peliasLogger.error('error constructing document model', e.stack);
     }
 
     return next();
@@ -110,7 +112,7 @@ module.exports = function(){
   });
 
   // catch stream errors
-  stream.on( 'error', peliasLogger.error.bind( peliasLogger, __filename ) );
+  stream.on('error', peliasLogger.error.bind(peliasLogger, __filename));
 
   return stream;
 };
