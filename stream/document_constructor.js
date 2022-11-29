@@ -30,7 +30,9 @@ module.exports = function(){
 
       let county, localadmin, locality = '';
 
-      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`)
+      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`,
+        {headers: {'Content-Type': 'application/json'}}
+      )
         .then((data) => {
           const aadress = JSON.parse(data.body).addresses[0].taisaadress;
           const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
