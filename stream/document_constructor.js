@@ -7,12 +7,12 @@ const through = require('through2');
 const Document = require('pelias-model').Document;
 const peliasLogger = require('pelias-logger').get('openstreetmap');
 const _ = require('lodash');
-const request = require('requestretry');
+const got = require('got');
 const transformation = require('transform-coordinates');
 
 module.exports = function () {
 
-  var stream = through.obj(function (item, enc, next) {
+  var stream = through.obj(async function (item, enc, next) {
 
     try {
       if (!item.type || !item.id) {
@@ -42,39 +42,32 @@ module.exports = function () {
       // Store osm tags as a property inside _meta
       doc.setMeta('tags', item.tags || {});
 
-      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${estCoordinates.x}&y=${estCoordinates.y}`,
-        {headers: {'Content-Type': 'application/json'}}
-      ).then(
-        (body) => {
-          // console.log(JSON.parse(body.body).addresses[0].taisaadress);
-          const aadress = JSON.parse(body.body).addresses[0].taisaadress;
-          const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
-          const admin_parts_length = admin_parts.length - 1;
-          if (admin_parts_length >= 3) {
-            county = admin_parts[0].trim();
-            localadmin = admin_parts[1].trim();
-            locality = admin_parts[2].trim();
-          } else {
-            county = admin_parts[0].trim();
-            locality = admin_parts[1].trim();
-          }
-
-          if (county && county.length > 0) {
-            doc.addParent('county', county, 'c:' + item.id);
-          }
-          if (localadmin && localadmin.length > 0) {
-            doc.addParent('localadmin', localadmin, 'la:' + item.id);
-          }
-          if (locality && locality.length > 0) {
-            doc.addParent('locality', locality, 'l:' + item.id);
-          }
-          console.log(doc);
-          this.push(doc);
-        },
-        (err) => {
-          console.log(err);
-        } // Handle error later
+      const addressResponse = await got(
+        `https://inaadress.maaamet.ee/inaadress/gazetteer?x=${estCoordinates.x}&y=${estCoordinates.y}`
       );
+      // console.log(JSON.parse(body.body).addresses[0].taisaadress);
+      const admin_parts = JSON.parse(addressResponse.body).addresses[0].taisaadress.split(',');//0-county, 1-localadmin, 2-locality
+      const admin_parts_length = admin_parts.length - 1;
+      if (admin_parts_length >= 3) {
+        county = admin_parts[0].trim();
+        localadmin = admin_parts[1].trim();
+        locality = admin_parts[2].trim();
+      } else {
+        county = admin_parts[0].trim();
+        locality = admin_parts[1].trim();
+      }
+
+      if (county && county.length > 0) {
+        doc.addParent('county', county, 'c:' + item.id);
+      }
+      if (localadmin && localadmin.length > 0) {
+        doc.addParent('localadmin', localadmin, 'la:' + item.id);
+      }
+      if (locality && locality.length > 0) {
+        doc.addParent('locality', locality, 'l:' + item.id);
+      }
+      console.log(doc);
+      this.push(doc);
 
       console.log('after request');
 
