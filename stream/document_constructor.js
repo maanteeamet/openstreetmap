@@ -29,6 +29,12 @@ module.exports = function () {
 
       let county, localadmin, locality = '';
 
+      var uniqueId = [item.type, item.id].join('/');
+
+      // we need to assume it will be a venue and later if it turns out to be an address it will get changed
+      var doc = new Document('openstreetmap', 'venue', uniqueId);
+      doc.setName('default', item.tags.name);
+
       request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`,
         {headers: {'Content-Type': 'application/json'}}
       ).then(
@@ -45,16 +51,21 @@ module.exports = function () {
             county = admin_parts[0].trim();
             locality = admin_parts[1].trim();
           }
+
+          if (county && county.length > 0) {
+            doc.addParent('county', county, 'c:' + item.id);
+          }
+          if (localadmin && localadmin.length > 0) {
+            doc.addParent('localadmin', localadmin, 'la:' + item.id);
+          }
+          if (locality && locality.length > 0) {
+            doc.addParent('locality', locality, 'l:' + item.id);
+          }
         },
         (err) => {
           console.log(err);
         } // Handle error later
       );
-
-      var uniqueId = [item.type, item.id].join('/');
-
-      // we need to assume it will be a venue and later if it turns out to be an address it will get changed
-      var doc = new Document('openstreetmap', 'venue', uniqueId);
 
       // Set latitude / longitude
       if (item.hasOwnProperty('lat') && item.hasOwnProperty('lon')) {
@@ -86,16 +97,6 @@ module.exports = function () {
             lon: parseFloat(item.bounds.e)
           }
         });
-      }
-
-      if (county && county.length > 0) {
-        doc.addParent('county', county, 'c:' + item.id);
-      }
-      if (localadmin && localadmin.length > 0) {
-        doc.addParent('localadmin', localadmin, 'la:' + item.id);
-      }
-      if (locality && locality.length > 0) {
-        doc.addParent('locality', locality, 'l:' + item.id);
       }
 
       // Store osm tags as a property inside _meta
