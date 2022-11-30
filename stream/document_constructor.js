@@ -18,12 +18,15 @@ module.exports = function () {
       if (!item.type || !item.id) {
         throw new Error('doc without valid id or type');
       }
+      if (!item.lat || !item.lon) {
+        throw new Error('venue without coordinates');
+      }
       if (!item.tags.name) {
         throw new Error('venue without a name');
       }
 
       const transformForReverseGeocoding = transformation('EPSG:4326', 'EPSG:3301');
-      const reverseCoordinates = transformForReverseGeocoding.forward(
+      const estCoordinates = transformForReverseGeocoding.forward(
         {x: parseFloat(item.lon), y: parseFloat(item.lat)}
       );
 
@@ -34,12 +37,16 @@ module.exports = function () {
       // we need to assume it will be a venue and later if it turns out to be an address it will get changed
       var doc = new Document('openstreetmap', 'venue', uniqueId);
       doc.setName('default', item.tags.name);
+      doc.setCentroid({lon: item.lon, lat: item.lat});
 
-      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${reverseCoordinates.x}&y=${reverseCoordinates.y}`,
+      // Store osm tags as a property inside _meta
+      doc.setMeta('tags', item.tags || {});
+
+      request(`https://inaadress.maaamet.ee/inaadress/gazetteer?x=${estCoordinates.x}&y=${estCoordinates.y}`,
         {headers: {'Content-Type': 'application/json'}}
       ).then(
         (body) => {
-          console.log(JSON.parse(body.body).addresses[0].taisaadress);
+          // console.log(JSON.parse(body.body).addresses[0].taisaadress);
           const aadress = JSON.parse(body.body).addresses[0].taisaadress;
           const admin_parts = aadress.split(',');//0-county, 1-localadmin, 2-locality
           const admin_parts_length = admin_parts.length - 1;
@@ -61,49 +68,18 @@ module.exports = function () {
           if (locality && locality.length > 0) {
             doc.addParent('locality', locality, 'l:' + item.id);
           }
+          console.log(doc);
+          this.push(doc);
         },
         (err) => {
           console.log(err);
         } // Handle error later
       );
 
-      // Set latitude / longitude
-      if (item.hasOwnProperty('lat') && item.hasOwnProperty('lon')) {
-        doc.setCentroid({
-          lat: item.lat,
-          lon: item.lon
-        });
-      }
-
-      // Set latitude / longitude (for ways where the centroid has been precomputed)
-      else if (item.hasOwnProperty('centroid')) {
-        if (item.centroid.hasOwnProperty('lat') && item.centroid.hasOwnProperty('lon')) {
-          doc.setCentroid({
-            lat: item.centroid.lat,
-            lon: item.centroid.lon
-          });
-        }
-      }
-
-      // set bounding box
-      if (_.isPlainObject(item.bounds)) {
-        doc.setBoundingBox({
-          upperLeft: {
-            lat: parseFloat(item.bounds.n),
-            lon: parseFloat(item.bounds.w)
-          },
-          lowerRight: {
-            lat: parseFloat(item.bounds.s),
-            lon: parseFloat(item.bounds.e)
-          }
-        });
-      }
-
-      // Store osm tags as a property inside _meta
-      doc.setMeta('tags', item.tags || {});
+      console.log('after request');
 
       // Push instance of Document downstream
-      this.push(doc);
+      // this.push(doc);
     } catch (e) {
       peliasLogger.error('error constructing document model', e.stack);
     }
