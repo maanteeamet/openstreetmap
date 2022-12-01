@@ -51,7 +51,7 @@
     "pelias-logger": "^1.2.1",
     "pelias-model": "^7.1.0",
     "pelias-wof-admin-lookup": "^7.1.1",
-    "got": "^12.5.3",
+    "got": "^11.8.3",
     "through2": "^3.0.0",
     "through2-sink": "^1.0.0",
     "transform-coordinates": "^1.0.0"
