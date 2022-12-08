@@ -1,21 +1,15 @@
 var combinedStream = require('combined-stream');
-var pbf = require('./pbf');
-var path = require('path');
 var logger = require('pelias-logger').get('openstreetmap');
+const request = require('request');
 
 function createCombinedStream(){
   var fullStream = combinedStream.create();
-  var defaultPath= require('pelias-config').generate().imports.openstreetmap;
+  var defaultPath= require('pelias-config').generate().imports['openstreetmap-venues'];
 
-  defaultPath.import.forEach(function( importObject){
-    var conf = {
-      file: path.join(defaultPath.datapath, importObject.filename),
-      leveldb: defaultPath.leveldbpath,
-      importVenues: importObject.importVenues
-    };
+  defaultPath.download.forEach(function( importObject){
     fullStream.append(function(next){
-      logger.info('Creating read stream for: ' + conf.file);
-      next(pbf.parser(conf));
+      logger.info('Creating read stream for osm venues');
+      next(request({url: importObject.sourceURL}));
     });
   });
 

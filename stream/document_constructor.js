@@ -39,13 +39,9 @@ module.exports = function () {
       doc.setName('default', item.tags.name);
       doc.setCentroid({lon: item.lon, lat: item.lat});
 
-      // Store osm tags as a property inside _meta
-      doc.setMeta('tags', item.tags || {});
-
       const addressResponse = await got(
         `https://inaadress.maaamet.ee/inaadress/gazetteer?x=${estCoordinates.x}&y=${estCoordinates.y}`
       );
-      // console.log(JSON.parse(body.body).addresses[0].taisaadress);
       const admin_parts = JSON.parse(addressResponse.body).addresses[0].taisaadress.split(',');//0-county, 1-localadmin, 2-locality
       const admin_parts_length = admin_parts.length - 1;
       if (admin_parts_length >= 3) {
@@ -66,13 +62,8 @@ module.exports = function () {
       if (locality && locality.length > 0) {
         doc.addParent('locality', locality, 'l:' + item.id);
       }
-      console.log(doc);
+      // console.log(doc);
       this.push(doc);
-
-      console.log('after request');
-
-      // Push instance of Document downstream
-      // this.push(doc);
     } catch (e) {
       peliasLogger.error('error constructing document model', e.stack);
     }
